@@ -1,0 +1,57 @@
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Datasets and model artifacts
+*.zip
+*.joblib
+*.pkl
+*.parquet
+*.csv
+
+# Generated documentation and reports
+*.pdf
+*_manifest.txt
+*_Manifest.txt
+SONDER_PROJECT_CONTEXT.md
+project_status_list.txt
+.checksums_after_restore.txt
+_foreign_versions_found_0533/
+
+# Dependencies
+node_modules/
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Local datasets and runtime databases
+backend/data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Local datasets and runtime databases
+backend/data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Trained model binaries
+*.joblib
+*.pkl
+*.h5
+*.pt
+*.onnx

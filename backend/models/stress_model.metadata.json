@@ -1,0 +1,117 @@
+{
+  "class_labels": [
+    "NON_STRESS",
+    "STRESS"
+  ],
+  "feature_order": [
+    "bvp_mean",
+    "bvp_std",
+    "bvp_range",
+    "bvp_slope",
+    "bvp_rms",
+    "eda_mean",
+    "eda_std",
+    "eda_range",
+    "eda_slope",
+    "eda_peak_count",
+    "eda_peak_mean_amplitude",
+    "eda_peak_max_amplitude",
+    "skin_temperature_mean",
+    "skin_temperature_std",
+    "skin_temperature_range",
+    "skin_temperature_slope",
+    "acc_x_mean",
+    "acc_x_std",
+    "acc_y_mean",
+    "acc_y_std",
+    "acc_z_mean",
+    "acc_z_std",
+    "acc_magnitude_mean",
+    "acc_magnitude_std",
+    "acc_magnitude_range",
+    "acc_magnitude_rms",
+    "acc_magnitude_mean_abs_diff"
+  ],
+  "label_mapping": {
+    "binary_target": {
+      "BASELINE": "NON_STRESS",
+      "STRESS": "STRESS"
+    },
+    "excluded": [
+      "UNDEFINED",
+      "AMUSEMENT",
+      "MEDITATION",
+      "UNKNOWN"
+    ],
+    "wesad_original": {
+      "1": "BASELINE",
+      "2": "STRESS"
+    }
+  },
+  "model_name": "SONDER Random Forest",
+  "model_parameters": {
+    "bootstrap": true,
+    "ccp_alpha": 0.0,
+    "class_weight": "balanced",
+    "criterion": "gini",
+    "max_depth": null,
+    "max_features": "sqrt",
+    "max_leaf_nodes": null,
+    "max_samples": null,
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 1,
+    "min_samples_split": 2,
+    "min_weight_fraction_leaf": 0.0,
+    "monotonic_cst": null,
+    "n_estimators": 300,
+    "n_jobs": -1,
+    "oob_score": false,
+    "random_state": 42,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "model_type": "sklearn.ensemble.RandomForestClassifier",
+  "model_version": "1.0.0",
+  "preprocessing": {
+    "contract": "app.schemas.sensor.SensorReading",
+    "extractor": "app.preprocessing.features.extract_window_features",
+    "imputation": {},
+    "normalization": null
+  },
+  "sample_rates_hz": {
+    "acc_x": 32.0,
+    "acc_y": 32.0,
+    "acc_z": 32.0,
+    "bvp": 64.0,
+    "eda": 4.0,
+    "skin_temperature": 4.0
+  },
+  "task": "classification",
+  "training": {
+    "rows": 434,
+    "subjects": [
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S6",
+      "S7",
+      "S8",
+      "S9",
+      "S10",
+      "S11",
+      "S13",
+      "S14",
+      "S15",
+      "S16",
+      "S17"
+    ],
+    "window_summary": {
+      "excluded": 1340,
+      "non_stress": 282,
+      "stress": 152,
+      "total": 1774
+    }
+  },
+  "window_seconds": 60.0
+}

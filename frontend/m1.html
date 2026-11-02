@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SONDER | Physiological telemetry</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            move: { 900: '#0B2317', 800: '#0F3B27', 700: '#17402B' },
+            lime: { accent: '#92FF5F', subtle: 'rgba(146,255,95,.16)' },
+            mint: { DEFAULT: '#CFF1D2', dark: '#144c2c' },
+            canvas: { outer: '#E6E6DE', frame: '#EDEFEA', card: '#FFFFFF', muted: '#F6F7F4', border: '#E2E5DF' },
+            orange: { alert: '#FF7036', soft: '#ffe9e0' }
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+            display: ['Space Grotesk', 'Plus Jakarta Sans', 'sans-serif']
+          },
+          boxShadow: { bento: '0 8px 30px -4px rgba(15,59,39,.06), 0 2px 8px -2px rgba(0,0,0,.03)' }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #e6e6de; color: #121915; }
+    .font-display { font-family: 'Space Grotesk', sans-serif; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .status-dot { width: .5rem; height: .5rem; border-radius: 9999px; display: inline-block; }
+    .code-value { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body class="min-h-screen p-3 md:p-6 text-[#131c17]">
+  <div class="mx-auto flex min-h-[calc(100vh-1.5rem)] w-full max-w-[1440px] flex-col gap-5 rounded-[30px] border border-[#dadfd7] bg-canvas-frame p-4 shadow-2xl md:p-6">
+    <header class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-move-800 text-lime-accent" aria-hidden="true">
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3" fill="currentColor"></circle>
+            <path stroke-linecap="round" d="M12 2v3m0 14v3M2 12h3m14 0h3m-3.5-6.5-2.2 2.2m-8.6 8.6-2.2 2.2m0-13 2.2 2.2m8.6 8.6 2.2 2.2"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="font-display text-xl font-bold tracking-tight text-move-900 md:text-2xl">SONDER</h1>
+            <span id="header-live-status" class="inline-flex items-center gap-1.5 rounded-full border border-canvas-border bg-white px-2.5 py-1 text-[10px] font-bold text-neutral-600">
+              <span class="status-dot bg-neutral-300"></span><span id="header-live-label">Waiting for telemetry</span>
+            </span>
+          </div>
+          <p id="page-subtitle" class="mt-0.5 text-xs text-neutral-500">Physiological telemetry and completed-window stress predictions</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-xs text-neutral-500">
+        <span id="header-updated">Not updated</span>
+        <span id="api-status" class="rounded-full border border-canvas-border bg-white px-3 py-1.5 font-semibold">Backend unverified</span>
+      </div>
+    </header>
+
+    <div class="flex flex-col gap-5 lg:flex-row lg:items-start">
+      <aside class="flex w-full shrink-0 items-center justify-center gap-2 rounded-[24px] border border-canvas-border bg-white p-2 shadow-bento lg:w-[68px] lg:flex-col" aria-label="Dashboard navigation">
+        <button id="nav-btn-overview" class="nav-tab-btn rounded-2xl bg-move-800 p-3 text-white shadow-md" data-tab="overview" title="Overview" aria-label="Overview"><span aria-hidden="true">⌂</span></button>
+        <button id="nav-btn-live-monitor" class="nav-tab-btn rounded-2xl p-3 text-neutral-500 hover:bg-canvas-muted" data-tab="live-monitor" title="Live telemetry" aria-label="Live telemetry"><span aria-hidden="true">⌁</span></button>
+        <button id="nav-btn-history" class="nav-tab-btn rounded-2xl p-3 text-neutral-500 hover:bg-canvas-muted" data-tab="history" title="Prediction history" aria-label="Prediction history"><span aria-hidden="true">≡</span></button>
+      </aside>
+
+      <main class="min-w-0 flex-1">
+        <section id="tab-overview" class="tab-content active space-y-5" aria-labelledby="overview-title">
+          <div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
+            <article class="rounded-[22px] border border-canvas-border bg-white p-4 shadow-bento">
+              <p class="text-xs font-semibold text-neutral-500">Live BVP</p>
+              <p id="card-bvp-val" class="code-value mt-1 font-display text-2xl font-bold text-move-900">—</p>
+              <p id="card-bvp-status" class="mt-2 text-[11px] font-semibold text-neutral-400">Waiting for live telemetry</p>
+            </article>
+            <article class="rounded-[22px] border border-canvas-border bg-white p-4 shadow-bento">
+              <p class="text-xs font-semibold text-neutral-500">Live EDA</p>
+              <p id="card-eda-val" class="code-value mt-1 font-display text-2xl font-bold text-move-900">—</p>
+              <p id="card-eda-status" class="mt-2 text-[11px] font-semibold text-neutral-400">Waiting for live telemetry</p>
+            </article>
+            <article class="rounded-[22px] border border-canvas-border bg-white p-4 shadow-bento">
+              <p class="text-xs font-semibold text-neutral-500">Skin temperature</p>
+              <p id="card-temperature-val" class="code-value mt-1 font-display text-2xl font-bold text-move-900">—</p>
+              <p id="card-temperature-status" class="mt-2 text-[11px] font-semibold text-neutral-400">Waiting for live telemetry</p>
+            </article>
+            <article class="rounded-[22px] border border-canvas-border bg-white p-4 shadow-bento">
+              <p class="text-xs font-semibold text-neutral-500">Movement</p>
+              <p id="card-movement-val" class="code-value mt-1 font-display text-2xl font-bold text-move-900">—</p>
+              <p id="card-movement-status" class="mt-2 text-[11px] font-semibold text-neutral-400">Waiting for live telemetry</p>
+            </article>
+          </div>
+
+          <div class="grid grid-cols-1 gap-5 xl:grid-cols-5">
+            <article class="rounded-[26px] bg-move-800 p-6 text-white shadow-bento xl:col-span-3">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <span id="hero-model-status" class="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold text-lime-accent">Waiting for a completed prediction</span>
+                <span id="hero-model-version" class="text-xs text-neutral-300">Model unavailable</span>
+              </div>
+              <div class="mt-8 flex flex-wrap items-center justify-between gap-6">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-neutral-300">Latest predicted state</p>
+                  <h2 id="hero-stress-label" class="mt-1 font-display text-4xl font-bold">Unavailable</h2>
+                  <p id="hero-prediction-detail" class="mt-2 max-w-md text-sm text-neutral-300">Predictions appear after the backend completes a sensor window.</p>
+                </div>
+                <div class="flex h-28 w-28 shrink-0 flex-col items-center justify-center rounded-full border-[10px] border-move-700 text-center">
+                  <span id="hero-confidence-pct" class="font-display text-2xl font-bold">—</span>
+                  <span class="text-[10px] uppercase tracking-wider text-lime-accent">confidence</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="rounded-[26px] border border-canvas-border bg-white p-6 shadow-bento xl:col-span-2">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h2 id="overview-title" class="font-display text-base font-bold text-move-900">Backend and sensor status</h2>
+                  <p id="device-subject" class="mt-1 text-xs text-neutral-500">No telemetry received</p>
+                </div>
+                <span id="device-live-status" class="rounded-full border border-canvas-border bg-canvas-muted px-2.5 py-1 text-[10px] font-bold text-neutral-600">WAITING</span>
+              </div>
+              <dl class="mt-6 space-y-3 text-xs">
+                <div class="flex justify-between gap-4 border-b border-neutral-100 pb-2.5"><dt class="text-neutral-500">Device</dt><dd id="device-name" class="font-semibold text-move-900">Not provided</dd></div>
+                <div class="flex justify-between gap-4 border-b border-neutral-100 pb-2.5"><dt class="text-neutral-500">MQTT connection</dt><dd id="mqtt-connection" class="font-semibold text-neutral-600">Unverified</dd></div>
+                <div class="flex justify-between gap-4 border-b border-neutral-100 pb-2.5"><dt class="text-neutral-500">Samples in live window</dt><dd id="packets-count" class="font-semibold text-move-900">—</dd></div>
+                <div class="flex justify-between gap-4"><dt class="text-neutral-500">Battery / contact</dt><dd class="font-semibold text-neutral-500">Not provided</dd></div>
+              </dl>
+              <p id="health-detail" class="mt-5 rounded-xl bg-canvas-muted p-3 text-[11px] text-neutral-500">Health information is read from the backend.</p>
+            </article>
+          </div>
+
+          <article class="rounded-[26px] border border-canvas-border bg-white p-6 shadow-bento">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="font-display text-base font-bold text-move-900">Latest completed sensor window</h2>
+                <p id="window-detail" class="mt-1 text-xs text-neutral-500">No completed sensor window available</p>
+              </div>
+              <div class="flex gap-1 rounded-full border border-canvas-border bg-canvas-muted p-1 text-xs">
+                <button class="signal-button rounded-full bg-move-800 px-3 py-1.5 font-semibold text-lime-accent" data-signal="bvp">BVP</button>
+                <button class="signal-button rounded-full px-3 py-1.5 text-neutral-600" data-signal="eda">EDA</button>
+                <button class="signal-button rounded-full px-3 py-1.5 text-neutral-600" data-signal="temperature">Temperature</button>
+                <button class="signal-button rounded-full px-3 py-1.5 text-neutral-600" data-signal="movement">Movement</button>
+              </div>
+            </div>
+            <svg class="mt-5 h-48 w-full rounded-2xl bg-move-900 p-3" viewBox="0 0 900 180" preserveAspectRatio="none" role="img" aria-label="Latest sensor waveform">
+              <path id="chart-line" fill="none" stroke="#92FF5F" stroke-width="2.5" stroke-linecap="round"></path>
+            </svg>
+            <p id="chart-empty" class="mt-3 text-xs text-neutral-500">Waveform unavailable until a completed sensor window is returned.</p>
+          </article>
+        </section>
+
+        <section id="tab-live-monitor" class="tab-content space-y-5" aria-labelledby="live-title">
+          <article class="rounded-[26px] border border-canvas-border bg-white p-6 shadow-bento">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 pb-5">
+              <div>
+                <h2 id="live-title" class="font-display text-lg font-bold text-move-900">Live sensor telemetry</h2>
+                <p class="mt-1 text-xs text-neutral-500">Most recently accepted MQTT sample. This is not a continuous stream.</p>
+              </div>
+              <span id="live-age" class="rounded-full bg-canvas-muted px-3 py-1.5 text-xs font-semibold text-neutral-600">No sample</span>
+            </div>
+            <svg class="mt-6 h-56 w-full rounded-2xl bg-move-900 p-4" viewBox="0 0 900 180" preserveAspectRatio="none" aria-label="Live BVP samples">
+              <path id="live-monitor-line" fill="none" stroke="#92FF5F" stroke-width="2.5" stroke-linecap="round"></path>
+            </svg>
+            <div class="mt-5 grid grid-cols-2 gap-4 text-xs md:grid-cols-4">
+              <div><p class="text-neutral-500">BVP</p><p id="live-monitor-bvp" class="mt-1 font-mono font-bold text-move-900">Awaiting sample</p></div>
+              <div><p class="text-neutral-500">EDA</p><p id="live-monitor-eda" class="mt-1 font-mono font-bold text-move-900">Awaiting sample</p></div>
+              <div><p class="text-neutral-500">Temperature</p><p id="live-monitor-temperature" class="mt-1 font-mono font-bold text-move-900">Awaiting sample</p></div>
+              <div><p class="text-neutral-500">Movement</p><p id="live-monitor-movement" class="mt-1 font-mono font-bold text-move-900">Awaiting sample</p></div>
+            </div>
+          </article>
+        </section>
+
+        <section id="tab-history" class="tab-content space-y-5" aria-labelledby="history-title">
+          <article class="rounded-[26px] border border-canvas-border bg-white p-6 shadow-bento">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 id="history-title" class="font-display text-lg font-bold text-move-900">Prediction history</h2>
+                <p class="mt-1 text-xs text-neutral-500">Completed prediction records returned by the backend.</p>
+              </div>
+              <button id="export-button" class="rounded-full bg-move-800 px-4 py-2.5 text-xs font-semibold text-lime-accent hover:bg-move-700">Export loaded CSV</button>
+            </div>
+            <div class="mt-5 overflow-x-auto">
+              <table class="w-full min-w-[700px] text-left text-xs">
+                <thead class="border-b border-neutral-100 text-[11px] uppercase tracking-wider text-neutral-400">
+                  <tr><th class="pb-3 pl-2">Time</th><th class="pb-3">Classification</th><th class="pb-3">Confidence</th><th class="pb-3">Device</th><th class="pb-3">Model</th><th class="pb-3 pr-2">Source</th></tr>
+                </thead>
+                <tbody id="history-predictions-tbody" class="divide-y divide-neutral-100">
+                  <tr><td colspan="6" class="py-4 text-neutral-500">Loading prediction history…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+    <footer class="flex flex-wrap justify-between gap-2 px-1 text-[11px] text-neutral-500">
+      <span>SONDER · backend-backed telemetry dashboard</span>
+      <span id="footer-model">Model status unavailable</span>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      const API_BASE = 'http://localhost:8000';
+      const LIVE_POLL_MS = 1000;
+      const PREDICTION_POLL_MS = 3000;
+      const MAX_POINTS = 240;
+      let activeTab = 'overview';
+      let activeSignal = 'bvp';
+      let latestWindow = null;
+      let loadedPredictions = [];
+      let liveBvpPoints = [];
+
+      const $ = id => document.getElementById(id);
+      const setText = (id, value) => { const element = $(id); if (element) element.textContent = value; };
+      const finite = value => Number.isFinite(Number(value)) ? Number(value) : null;
+      const formatTime = value => value ? new Date(value).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—';
+      const formatConfidence = value => finite(value) === null ? '—' : `${(Number(value) * 100).toFixed(1)}%`;
+      const escapeHtml = value => String(value ?? '—').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+
+      function setTab(tabId) {
+        activeTab = tabId;
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.toggle('active', tab.id === `tab-${tabId}`));
+        document.querySelectorAll('.nav-tab-btn').forEach(button => {
+          const selected = button.dataset.tab === tabId;
+          button.classList.toggle('bg-move-800', selected);
+          button.classList.toggle('text-white', selected);
+          button.classList.toggle('shadow-md', selected);
+          button.classList.toggle('text-neutral-500', !selected);
+        });
+        setText('page-subtitle', tabId === 'overview' ? 'Physiological telemetry and completed-window stress predictions' : tabId === 'live-monitor' ? 'Most recently accepted telemetry sample from the backend' : 'Completed prediction records returned by the backend');
+      }
+
+      function drawPath(values, elementId, width = 900, baseline = 150, height = 105) {
+        const line = $(elementId);
+        if (!line || values.length < 2) { if (line) line.removeAttribute('d'); return; }
+        const points = values.length > MAX_POINTS ? values.slice(-MAX_POINTS) : values;
+        const min = Math.min(...points);
+        const range = Math.max(Math.max(...points) - min, 1e-9);
+        line.setAttribute('d', points.map((value, index) => {
+          const x = (index / (points.length - 1)) * width;
+          const y = baseline - ((value - min) / range) * height;
+          return `${index ? 'L' : 'M'} ${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' '));
+      }
+
+      function numbers(value) {
+        return Array.isArray(value) ? value.map(Number).filter(Number.isFinite) : [];
+      }
+
+      function movementValues(data) {
+        const x = numbers(data.acc_x), y = numbers(data.acc_y), z = numbers(data.acc_z);
+        const count = Math.min(x.length, y.length, z.length);
+        return Array.from({ length: count }, (_, index) => Math.hypot(x[index], y[index], z[index]));
+      }
+
+      function windowValues(signal) {
+        if (!latestWindow) return [];
+        if (signal === 'eda') return numbers(latestWindow.eda);
+        if (signal === 'temperature') return numbers(latestWindow.skin_temperature);
+        if (signal === 'movement') return movementValues(latestWindow);
+        return numbers(latestWindow.bvp);
+      }
+
+      function renderWindow() {
+        const values = windowValues(activeSignal);
+        drawPath(values, 'chart-line', 900, 150, 105);
+        setText('chart-empty', values.length > 1 ? `${values.length.toLocaleString()} ${activeSignal} samples from the completed window.` : 'Waveform unavailable for this signal.');
+      }
+
+      function renderLive(data) {
+        const receiving = data?.status === 'receiving' && data.has_data;
+        const stale = data?.status === 'stale';
+        const stateLabel = receiving ? 'RECEIVING' : stale ? 'STALE' : 'WAITING';
+        setText('device-live-status', stateLabel);
+        setText('header-live-label', receiving ? 'Receiving telemetry' : stale ? 'Telemetry stale' : 'Waiting for telemetry');
+        setText('device-name', data?.device_id || 'Not provided');
+        setText('device-subject', data?.subject_id ? `Subject ${data.subject_id}` : receiving ? 'Subject not provided' : 'No telemetry received');
+        setText('live-age', data?.age_seconds == null ? 'No sample' : `${Number(data.age_seconds).toFixed(1)}s old`);
+        if (!receiving) {
+          ['card-bvp-val', 'card-eda-val', 'card-temperature-val', 'card-movement-val'].forEach(id => setText(id, '—'));
+          ['live-monitor-bvp', 'live-monitor-eda', 'live-monitor-temperature', 'live-monitor-movement'].forEach(id => setText(id, stale ? 'Stale telemetry' : 'Awaiting sample'));
+          setText('packets-count', '—');
+          return;
+        }
+        const bvp = finite(data.bvp), eda = finite(data.eda), temp = finite(data.skin_temperature);
+        const movement = [data.acc_x, data.acc_y, data.acc_z].map(finite);
+        const acc = movement.every(value => value !== null) ? Math.hypot(...movement) : null;
+        setText('card-bvp-val', bvp === null ? '—' : bvp.toFixed(2));
+        setText('card-eda-val', eda === null ? '—' : eda.toFixed(3));
+        setText('card-temperature-val', temp === null ? '—' : `${temp.toFixed(2)}°`);
+        setText('card-movement-val', acc === null ? '—' : acc.toFixed(2));
+        ['card-bvp-status', 'card-eda-status', 'card-temperature-status', 'card-movement-status'].forEach(id => setText(id, 'Receiving'));
+        setText('live-monitor-bvp', bvp === null ? 'Unavailable' : `${bvp.toFixed(2)} raw`);
+        setText('live-monitor-eda', eda === null ? 'Unavailable' : `${eda.toFixed(3)} µS`);
+        setText('live-monitor-temperature', temp === null ? 'Unavailable' : `${temp.toFixed(2)} °C`);
+        setText('live-monitor-movement', acc === null ? 'Unavailable' : `${acc.toFixed(2)} ACC`);
+        const total = Object.values(data.sample_counts || {}).reduce((sum, count) => sum + (Number(count) || 0), 0);
+        setText('packets-count', `${total.toLocaleString()} samples`);
+        if (bvp !== null) { liveBvpPoints = [...liveBvpPoints, bvp].slice(-MAX_POINTS); drawPath(liveBvpPoints, 'live-monitor-line'); }
+      }
+
+      function renderPrediction(prediction) {
+        if (!prediction) {
+          setText('hero-stress-label', 'Unavailable');
+          setText('hero-confidence-pct', '—');
+          setText('hero-prediction-detail', 'No completed prediction is available.');
+          setText('hero-model-status', 'Waiting for a completed prediction');
+          setText('hero-model-version', 'Model unavailable');
+          return;
+        }
+        setText('hero-stress-label', prediction.label === 'NON_STRESS' ? 'NON-STRESS' : prediction.label || 'Unavailable');
+        setText('hero-confidence-pct', formatConfidence(prediction.confidence));
+        setText('hero-prediction-detail', `${prediction.is_mock ? 'Mock/demo result' : 'Real model prediction'} · ${formatTime(prediction.timestamp)} · device ${prediction.device_id || 'not provided'}`);
+        setText('hero-model-status', prediction.is_mock ? 'Completed prediction · mock/demo result' : 'Completed 60-second prediction window');
+        setText('hero-model-version', `${prediction.model_name || 'Model'} v${prediction.model_version || 'unknown'}`);
+      }
+
+      function predictionRow(prediction) {
+        const label = prediction.label === 'NON_STRESS' ? 'NON-STRESS' : prediction.label || 'Unavailable';
+        const stress = prediction.label === 'STRESS';
+        const badge = stress ? 'bg-orange-soft text-orange-alert' : 'bg-mint text-move-800';
+        return `<tr class="hover:bg-neutral-50"><td class="py-3 pl-2">${escapeHtml(formatTime(prediction.timestamp))}</td><td class="py-3"><span class="rounded-full px-2.5 py-1 text-[11px] font-bold ${badge}">${escapeHtml(label)}</span></td><td class="py-3 text-neutral-600">${escapeHtml(formatConfidence(prediction.confidence))}</td><td class="py-3 text-neutral-600">${escapeHtml(prediction.device_id)}</td><td class="py-3 text-neutral-600">${escapeHtml(`${prediction.model_name || 'Model'} v${prediction.model_version || '—'}`)}</td><td class="py-3 pr-2 text-neutral-600">${prediction.is_mock ? 'Mock/demo' : 'Real model'}</td></tr>`;
+      }
+
+      function renderHistory(items) {
+        loadedPredictions = Array.isArray(items) ? items : [];
+        const body = $('history-predictions-tbody');
+        if (body) body.innerHTML = loadedPredictions.length ? loadedPredictions.map(predictionRow).join('') : '<tr><td colspan="6" class="py-4 text-neutral-500">No completed predictions yet.</td></tr>';
+      }
+
+      async function refreshLive() {
+        try {
+          const response = await fetch(`${API_BASE}/api/sensor/live`, { cache: 'no-store' });
+          if (!response.ok) throw new Error('live telemetry unavailable');
+          renderLive(await response.json());
+          setText('header-updated', `Updated ${new Date().toLocaleTimeString()}`);
+        } catch {
+          renderLive({ status: 'no_data', has_data: false });
+          setText('header-live-label', 'Backend unavailable');
+        }
+      }
+
+      async function refreshPredictions() {
+        try {
+          const [latestResponse, historyResponse] = await Promise.all([
+            fetch(`${API_BASE}/api/predictions/latest`, { cache: 'no-store' }),
+            fetch(`${API_BASE}/api/predictions?limit=50`, { cache: 'no-store' })
+          ]);
+          renderPrediction(latestResponse.ok ? await latestResponse.json() : null);
+          renderHistory(historyResponse.ok ? (await historyResponse.json()).items : []);
+        } catch {
+          renderPrediction(null);
+          renderHistory([]);
+        }
+      }
+
+      async function refreshWindow() {
+        try {
+          const response = await fetch(`${API_BASE}/api/sensor/latest`, { cache: 'no-store' });
+          if (!response.ok) throw new Error('window unavailable');
+          latestWindow = await response.json();
+          setText('window-detail', `${latestWindow.device_id || 'Device not provided'} · ${formatTime(latestWindow.timestamp)} · ${latestWindow.window_seconds || '—'} second window`);
+          renderWindow();
+        } catch {
+          latestWindow = null;
+          setText('window-detail', 'No completed sensor window available');
+          renderWindow();
+        }
+      }
+
+      async function refreshHealth() {
+        try {
+          const response = await fetch(`${API_BASE}/health`, { cache: 'no-store' });
+          if (!response.ok) throw new Error('health unavailable');
+          const health = await response.json();
+          setText('api-status', health.status === 'ok' ? 'Backend healthy' : `Backend ${health.status}`);
+          setText('mqtt-connection', health.mqtt?.enabled ? (health.mqtt.connected ? 'Connected' : 'Disconnected') : 'Disabled');
+          setText('health-detail', `Database ${health.database?.ok ? 'available' : 'unavailable'} · MQTT ${health.mqtt?.enabled ? 'enabled' : 'disabled'} · inference ${health.inference?.model_loaded ? 'model loaded' : 'model unavailable'}`);
+          setText('footer-model', health.inference?.model_loaded ? 'Inference model loaded' : 'Inference model unavailable');
+        } catch {
+          setText('api-status', 'Backend unavailable');
+          setText('mqtt-connection', 'Unverified');
+          setText('health-detail', 'The backend health endpoint could not be reached.');
+        }
+      }
+
+      function exportCsv() {
+        if (!loadedPredictions.length) return;
+        const headers = ['timestamp', 'label', 'confidence', 'device_id', 'model', 'source'];
+        const rows = loadedPredictions.map(item => [item.timestamp, item.label, item.confidence, item.device_id, `${item.model_name || 'Model'} v${item.model_version || ''}`, item.is_mock ? 'mock' : 'real']);
+        const csv = [headers, ...rows].map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n');
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        link.download = 'sonder-predictions.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+      }
+
+      document.querySelectorAll('.nav-tab-btn').forEach(button => button.addEventListener('click', () => setTab(button.dataset.tab)));
+      document.querySelectorAll('.signal-button').forEach(button => button.addEventListener('click', () => {
+        activeSignal = button.dataset.signal;
+        document.querySelectorAll('.signal-button').forEach(item => item.classList.toggle('bg-move-800', item === button));
+        document.querySelectorAll('.signal-button').forEach(item => item.classList.toggle('text-lime-accent', item === button));
+        renderWindow();
+      }));
+      $('export-button').addEventListener('click', exportCsv);
+      setTab(activeTab);
+      refreshLive();
+      refreshPredictions();
+      refreshWindow();
+      refreshHealth();
+      setInterval(refreshLive, LIVE_POLL_MS);
+      setInterval(refreshPredictions, PREDICTION_POLL_MS);
+      setInterval(refreshWindow, PREDICTION_POLL_MS);
+      setInterval(refreshHealth, 10000);
+    })();
+  </script>
+</body>
+</html>
