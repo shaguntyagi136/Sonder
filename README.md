@@ -1,8 +1,26 @@
-# StressSense — IoT-Based Stress Monitoring System
+# Sonder — IoT-Based Stress Monitoring System
 
-StressSense is an IoT-based physiological stress monitoring system that collects wearable sensor data, processes it into fixed-duration windows, and uses a machine learning model to classify the user's stress state.
+Sonder is an IoT-based physiological stress monitoring system that collects wearable sensor data, processes it into fixed-duration windows, and uses a machine learning model to classify the user's stress state.
 
 The project demonstrates an end-to-end pipeline using MQTT communication, real-time sensor processing, machine learning inference, and a live web dashboard.
+
+## Live Demo
+
+🎥 **Watch Sonder in action:** 
+
+
+https://github.com/user-attachments/assets/de2ef158-c14b-493a-8904-9e5927fdc82f
+
+
+
+The demonstration showcases:
+- Live physiological sensor readings.
+- BVP, EDA, temperature, and accelerometer telemetry.
+- Real-time sensor waveform updates.
+- 60-second data collection and processing.
+- Machine learning stress classification and prediction probabilities.
+
+*Note: The demonstration uses recorded WESAD physiological data replayed through the MQTT pipeline, rather than live measurements from a human subject.*
 
 ## Features
 
@@ -59,7 +77,7 @@ WESAD Dataset / Sensor Source
 ## Project Structure
 
 ```text
-StressSense/
+Sonder/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py
@@ -147,6 +165,24 @@ For offline model evaluation:
 python simulator/wesad_replay.py
 ```
 
+## Deployment
+
+The project uses the following deployment services:
+
+| Component | Platform | Link |
+|---|---|---|
+| Frontend Dashboard | Vercel | https://sonder-frontend-psi.vercel.app/ |
+| Backend API | Render | https://sonder-kvxn.onrender.com |
+| MQTT Broker | HiveMQ Cloud | MQTT messaging service |
+
+The WESAD replay simulator is run locally and publishes recorded sensor data to the MQTT broker. The deployed backend receives and processes the incoming data, while the Vercel dashboard displays the available telemetry and prediction events.
+
+### Backend Health Check
+
+The deployed backend health endpoint is:
+
+https://sonder-kvxn.onrender.com/health
+
 ## API Endpoints
 
 | Endpoint | Description |
@@ -206,6 +242,6 @@ WESAD replay is recorded physiological data, not a live measurement from a human
 
 ## Author
 
-**StressSense Project**
+**Sonder Project**
 
 Repository: https://github.com/shaguntyagi136/Sonder
