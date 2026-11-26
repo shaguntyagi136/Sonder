@@ -6,7 +6,7 @@ The project demonstrates an end-to-end pipeline using MQTT communication, real-t
 
 ## Live Demo
 
-🎥 **Watch Sonder in action:** 
+ **Watch Sonder in action:** 
 
 
 https://github.com/user-attachments/assets/de2ef158-c14b-493a-8904-9e5927fdc82f
