@@ -205,7 +205,7 @@
 
   <script>
     (() => {
-      const API_BASE = 'http://127.0.0.1:8000';
+      const API_BASE = 'https://sonder-kvxn.onrender.com';
       const PREDICTION_POLL_MS = 3000;
       const MAX_POINTS = 240;
       let activeTab = 'overview';
@@ -216,7 +216,7 @@
       let liveEdaPoints = [];
       let liveTemperaturePoints = [];
       let liveMovementPoints = [];
-      let sensorEventCount = 0;
+      let receivedSensorSinceConnect = false;
       let liveSocket;
 
       const $ = id => document.getElementById(id);
@@ -281,7 +281,7 @@
         if (!['bvp', 'eda', 'temperature', 'accelerometer'].includes(sensor.modality)) return;
         const value = finite(sensor.value);
         const timestamp = formatTime(sensor.timestamp);
-        sensorEventCount += 1;
+        receivedSensorSinceConnect = true;
         setText('device-live-status', 'RECEIVING');
         setText('header-live-label', 'Receiving telemetry');
         setText('device-name', sensor.device_id || 'Not provided');
@@ -359,6 +359,21 @@
         setText('hero-model-version', `Model v${prediction.model_version || 'unknown'}`);
       }
 
+      function setLiveConnectionState(state) {
+        const label = state === 'connected'
+          ? (receivedSensorSinceConnect ? 'Receiving telemetry' : 'Connected · waiting for sensor telemetry')
+          : state === 'connecting'
+            ? 'Connecting to live stream'
+            : 'Live stream disconnected · reconnecting';
+        setText('header-live-label', label);
+        setText('device-live-status', state === 'connected' && receivedSensorSinceConnect ? 'RECEIVING' : state === 'connected' ? 'WAITING' : state.toUpperCase());
+        if (state !== 'connected') {
+          setText('telemetry-status', state === 'connecting' ? 'Connecting to live stream' : 'Live stream disconnected · reconnecting');
+        } else if (!receivedSensorSinceConnect) {
+          setText('telemetry-status', 'Connected · waiting for sensor telemetry');
+        }
+      }
+
       function predictionRow(prediction) {
         const label = prediction.label === 'NON_STRESS' ? 'NON-STRESS' : prediction.label || 'Unavailable';
         const stress = prediction.label === 'STRESS';
@@ -373,17 +388,15 @@
       }
 
       async function refreshPredictions() {
-        fetch(`${API_BASE}/api/predictions/latest`, { cache: 'no-store' })
-          .then(async response => {
-            if (!response.ok) throw new Error('latest prediction unavailable');
-            const result = await response.json();
-            renderPrediction(result);
-          })
-          .catch(() => {
-            renderPrediction(null);
-            setText('hero-prediction-detail', 'Prediction data is currently unavailable.');
-            setText('hero-model-status', 'Prediction service unavailable');
-          });
+        try {
+          const response = await fetch(`${API_BASE}/api/predictions/latest`, { cache: 'no-store' });
+          if (!response.ok) throw new Error('latest prediction unavailable');
+          renderPrediction(await response.json());
+        } catch {
+          renderPrediction(null);
+          setText('hero-prediction-detail', 'Prediction data is currently unavailable.');
+          setText('hero-model-status', 'Prediction service unavailable');
+        }
       }
 
       async function refreshHealth() {
@@ -394,23 +407,23 @@
           const mqttStatus = health.mqtt_connected ? 'Connected' : 'Disconnected';
           setText('api-status', 'Backend reachable');
           setText('mqtt-connection', mqttStatus);
-          setText('telemetry-status', health.mqtt_connected ? (sensorEventCount ? 'Receiving' : 'Waiting for sensor telemetry') : 'MQTT disconnected');
           setText('health-detail', `HTTP backend reachable · MQTT ${mqttStatus.toLowerCase()}`);
           setText('footer-model', 'Prediction API available');
         } catch {
           setText('api-status', 'Backend unavailable');
           setText('mqtt-connection', 'Unverified');
           setText('health-detail', 'The backend health endpoint could not be reached.');
-          setText('telemetry-status', 'Waiting for sensor telemetry');
           setText('footer-model', 'Prediction API unavailable');
         }
       }
 
       function connectLiveSocket() {
-        const protocol = API_BASE.startsWith('https') ? 'wss' : 'ws';
-        liveSocket = new WebSocket(`${protocol}://${new URL(API_BASE).host}/ws/live`);
+        if (liveSocket && (liveSocket.readyState === WebSocket.CONNECTING || liveSocket.readyState === WebSocket.OPEN)) return;
+        setLiveConnectionState('connecting');
+        liveSocket = new WebSocket('wss://sonder-kvxn.onrender.com/ws/live');
         liveSocket.onopen = () => {
-          if (!sensorEventCount) setText('header-live-label', 'Waiting for sensor telemetry');
+          receivedSensorSinceConnect = false;
+          setLiveConnectionState('connected');
         };
         liveSocket.onmessage = event => {
           try {
@@ -421,22 +434,19 @@
             } else if (message.event_type === 'processing_status') {
               renderProcessingStatus(message.payload);
             } else if (message.event_type === 'prediction_update') {
-              refreshPredictions();
+              renderPrediction(message.payload);
+            } else if (message.event_type === 'connection_status' && message.payload?.status === 'connected') {
+              setLiveConnectionState('connected');
             }
           } catch {
             setText('health-detail', 'Received an invalid live event from the backend.');
           }
         };
         liveSocket.onclose = () => {
-          if (!sensorEventCount) {
-            setText('header-live-label', 'Waiting for sensor telemetry');
-            setText('telemetry-status', 'Waiting for sensor telemetry');
-          } else {
-            setText('header-live-label', 'Sensor stream disconnected');
-            setText('telemetry-status', 'Sensor stream disconnected');
-          }
+          setLiveConnectionState('disconnected');
           setTimeout(connectLiveSocket, 2000);
         };
+        liveSocket.onerror = () => liveSocket.close();
       }
 
       function exportCsv() {
